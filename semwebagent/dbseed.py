@@ -2,9 +2,7 @@ import sparql
 from neo4j.v1 import GraphDatabase, basic_auth
 from urlparse import urlparse
 
-
-driver = GraphDatabase.driver("bolt://localhost", auth=basic_auth("neo4j", "dba"))
-
+driver = GraphDatabase.driver("bolt://localhost", auth=basic_auth("neo4j", "52@USA0704"))
 
 session = driver.session()
 
@@ -19,8 +17,6 @@ check_subtype = "ASK { <@type> <http://www.w3.org/2000/01/rdf-schema#subClassOf>
 # sparql endpoint
 endpoint = "http://www.ebi.ac.uk/rdf/services/ensembl/sparql"
 
-# input type
-input_type = "http://www.ebi.ac.uk/efo/EFO_0000001"
 
 print 'start'
 
@@ -39,13 +35,8 @@ print 'number of types '+str(count)
 types = []
 
 
-def createCypher(nodeUri, nodeLabel, predicateUri, predicateLabel, objectUri, objectLabel, count, isLiteral, type_include, input_label):        
+def createCypher(nodeUri, nodeLabel, predicateUri, predicateLabel, objectUri, objectLabel, count, isLiteral):        
     result = ''
-    if type_include:
-        nodeUri = input_type
-        nodeLabel = input_label
-
-        print 'labels: node-' + nodeLabel + ' predicate-' + predicateLabel + ' object' + objectLabel
 
     if isLiteral:
         query = "MERGE (n:Uri {uri: {subject}, label : {subjectLabel} })"
@@ -82,29 +73,18 @@ def getLabel (uri):
 
     return label
 
-# get input type label
-input_label = getLabel(input_type)
+
 
 for x in range(0, count, 100):
     try:
-        result = sparql.query(endpoint, get_types_query + ' ORDER BY ?type LIMIT 100 OFFSET ' + str(x))
+        result = sparql.query(endpoint, get_types_query + ' ORDER BY ?type LIMIT 10 OFFSET ' + str(x))
     except Exception:
         print Exception 
         print 'query types \n'
     for row in result:
         type = sparql.unpack_row(row)[0]
-        #check whether this type is a subtype of input type
-        check_subtype_query = check_subtype.replace('@type', type).replace('@inputtype', input_type)
-        try:
-            type_include = sparql.query(endpoint, check_subtype_query)
-        except Exception:
-            print Exception 
-            print 'check inputtype'
-            type_include = FALSE
-        if type_include:
-            typeLabel = input_label
-        else:
-            typeLabel = getLabel(type)
+
+        typeLabel = getLabel(type)
         get_preds_query = get_predicates.replace('@id', type )
         #print get_preds_query
         try:
@@ -141,9 +121,9 @@ for x in range(0, count, 100):
                     tripleCount = sparql.unpack_row(relatedTypeCountRow)[0]
                     print type + ' -> ' + predicate + ' -> ' + relatedType + ' ' + str(tripleCount)
                     createCypher(type, typeLabel, predicate, predicateLabel, relatedType, relatedTypeLabel,
-                                     tripleCount, False, type_include, input_label)
+                                     tripleCount, False)
             if not hasResult:
                 print type+' -> '+predicate+' -> LITERAL'
-                createCypher(type, typeLabel, predicate, predicateLabel,  '', '', '', True, type_include, input_label)
+                createCypher(type, typeLabel, predicate, predicateLabel,  '', '', '', True)
 
 session.close()
