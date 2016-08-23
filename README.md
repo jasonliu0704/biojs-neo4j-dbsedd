@@ -1,2 +1,2 @@
 # rdfschema2neo4j
-Script that extracts the schema from a SPARQL endpoint into a Neo4j store so you can explore with Cypher. 
+This is the parser component for biojs-vis-RDFSchema that extracts the schema from a SPARQL endpoint into a Neo4j store so you can explore with Cypher. 
